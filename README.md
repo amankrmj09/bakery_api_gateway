@@ -1,36 +1,36 @@
 # Bakery API Gateway
 
-Central entry point for all bakery microservices. Routes requests and provides cross-cutting concerns.
+## Overview
+The API Gateway serves as the single entry point for all client applications, routing requests to appropriate backend microservices with integrated security, rate limiting, and service discovery.
 
 ## Features
+- Dynamic service discovery with Eureka  
+- Load balancing across service instances  
+- Request logging and security filtering  
+- CORS support for cross-origin requests  
+- Health monitoring and metrics exposition  
 
-- **Service Discovery**: Auto-discovers services via Eureka
-- **Load Balancing**: Distributes requests across service instances
-- **CORS Support**: Handles cross-origin requests for web clients
-- **Request Logging**: Logs all gateway traffic
-- **Health Monitoring**: Integrated health checks and metrics
+## Dependencies
+- Spring Cloud Gateway  
+- Spring Cloud Netflix Eureka Client  
+- Spring Boot Actuator  
+- Spring Security  
 
-## Quick Start
+## Key Endpoints
+- `/api/auth/**` → Auth Service  
+- `/api/orders/**` → Order Service  
+- `/api/cart/**` → Cart Service  
+- `/api/payments/**` → Payment Service  
+- `/api/products/**` → Product Service  
+- `/api/notifications/**` → Notification Service  
 
-### Run Locally
+## Running
+```
 ./gradlew bootRun
+```
 
+Runs on port 8080 by default.
 
-### Prerequisites
-- Eureka Server running on port 8761
-
-## API Routes
-
-| Path | Target Service | Purpose |
-|------|---------------|---------|
-| `/api/auth/**` | auth-service | Authentication |
-| `/api/orders/**` | order-service | Order management |
-| `/api/products/**` | inventory-service | Product catalog |
-| `/api/payments/**` | payment-service | Payment processing |
-| `/api/notifications/**` | notification-service | Notifications |
-
-## Endpoints
-
-- **Gateway Routes**: http://localhost:8080/actuator/gateway/routes
-- **Health Check**: http://localhost:8080/actuator/health
-- **Metrics**: http://localhost:8080/actuator/prometheus
+## Documentation
+Swagger UI available at:  
+`http://localhost:8080/swagger-ui.html`
