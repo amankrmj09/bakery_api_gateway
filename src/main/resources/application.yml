@@ -1,0 +1,81 @@
+# Server Configuration
+server:
+  port: 8080
+
+# Spring Application Configuration
+spring:
+  application:
+    name: bakery-api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              lower-case-service-id: true
+              enabled: true
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                          allowedOriginPatterns: "*"
+                          allowedMethods:
+                            - GET
+                            - POST
+                            - PUT
+                            - DELETE
+                            - OPTIONS
+                          allowedHeaders: "*"
+                          allowCredentials: true
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+# Management & Actuator Configuration (CORRECTED)
+management:
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      mode: full
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expose all endpoints
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      access: unrestricted
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.shah_s.bakery_api_gateway: DEBUG
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+info:
+  app:
+    name: Bakery API Gateway
+    description: Central gateway for bakery microservices
+    version: 1.0.0
+  build:
+    version: '@project.version@'
+    timestamp: '@timestamp@'
