@@ -1,0 +1,78 @@
+package com.shah_s.bakery_api_gateway.filter;
+
+import com.shah_s.bakery_api_gateway.util.JwtUtil;
+import io.jsonwebtoken.Claims;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.stereotype.Component;
+
+@Component
+public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
+
+    private final JwtUtil jwtUtil;
+
+    public AuthenticationFilter(JwtUtil jwtUtil) {
+        super(Config.class);
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    public GatewayFilter apply(Config config) {
+        return (exchange, chain) -> {
+            ServerHttpRequest request = exchange.getRequest();
+
+            // Skip auth for public endpoints if needed (usually handled by route predicates, but just in case)
+            if (request.getURI().getPath().contains("/api/auth/login") ||
+                request.getURI().getPath().contains("/api/auth/register")) {
+                return chain.filter(exchange);
+            }
+
+            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            String token = authHeader.substring(7);
+            if (!jwtUtil.validateToken(token)) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            Claims claims = jwtUtil.getClaims(token);
+            
+            // The subject is the username, but downstream services expect X-User-Id to be a UUID.
+            // The Auth service sets the actual UUID in the "userId" claim.
+            String userId = claims.get("userId", String.class);
+            if (userId == null) {
+                // Fallback to subject if userId claim is missing
+                userId = claims.getSubject();
+            }
+            String role = claims.get("role", String.class);
+
+            // Remove any incoming spoofed headers, then add the trusted ones
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .headers(httpHeaders -> {
+                        httpHeaders.remove("X-User-Id");
+                        httpHeaders.remove("X-User-Role");
+                    })
+                    .header("X-User-Id", userId)
+                    .header("X-User-Role", role)
+                    .build();
+
+            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+        };
+    }
+
+    public static class Config {
+        // Configuration properties can be added here if needed
+    }
+}
