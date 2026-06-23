@@ -4,9 +4,9 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.shah_s"
-version = "0.0.1-SNAPSHOT"
-description = "bakery_api_gateway"
+group = "com.dev_of_blue"
+version = "1.0.0"
+description = "bakery_api_gateway service to manage all the incoming requests and route them to the appropriate microservices."
 
 java {
     toolchain {
