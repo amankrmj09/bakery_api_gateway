@@ -25,9 +25,16 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux") // updated to non-deprecated gateway
     implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8") // add Caffeine cache
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+//    implementation("org.springframework.cloud:spring-cloud-starter-config")
+    
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+    // runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
