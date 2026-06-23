@@ -1,0 +1,259 @@
+### Bakery API End-to-End Shopping Cart Flow
+@baseUrl = http://localhost:8080
+@adminEmail = admin@bakery.com
+@adminPassword = Admin@123
+
+### 1. Admin Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("Admin Login successful", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.global.set("admin_token", response.body.access_token);
+    });
+%}
+
+### 2. Admin Creates Category 1
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "name": "Breads {{ $random.uuid }}",
+  "description": "Freshly baked artisan breads",
+  "active": true
+}
+
+> {%
+    client.test("Category 1 created", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.global.set("category1_id", response.body.id);
+    });
+%}
+
+### 3. Admin Adds Product to Category 1
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "sku": "BRD-{{ $random.uuid }}",
+  "name": "Sourdough Loaf",
+  "categoryId": "{{category1_id}}",
+  "price": 6.50,
+  "status": "ACTIVE",
+  "unit": "loaf",
+  "initialStock": 20
+}
+
+> {%
+    client.test("Product 1 created", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.global.set("product1_id", response.body.id);
+    });
+%}
+
+### 4. Admin Creates Category 2 and Product 2
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "name": "Pastries {{ $random.uuid }}",
+  "description": "Sweet and savory pastries",
+  "active": true
+}
+
+> {%
+    client.test("Category 2 created", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.global.set("category2_id", response.body.id);
+    });
+%}
+
+### 4.1 Admin Adds Product to Category 2
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "sku": "PST-{{ $random.uuid }}",
+  "name": "Blueberry Muffin",
+  "categoryId": "{{category2_id}}",
+  "price": 3.00,
+  "status": "ACTIVE",
+  "unit": "piece",
+  "initialStock": 30
+}
+
+> {%
+    client.test("Product 2 created", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.global.set("product2_id", response.body.id);
+    });
+%}
+
+### 5. User Registration
+< {%
+
+    client.global.set("username", "shopper" );
+    client.global.set("user_email", "shopper_" + $random.uuid + "@test.com");
+    client.global.set("user_password", "Password123!");
+%}
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "email": "{{user_email}}",
+  "password": "{{user_password}}",
+  "firstName": "Shopper",
+  "lastName": "Test"
+}
+
+> {%
+    client.test("User registration successful", function() {
+        client.assert(response.status === 201 || response.status === 400, "Expected 201 Created or 400 Exists");
+    });
+%}
+
+### 6. User Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "{{user_email}}",
+  "password": "{{user_password}}"
+}
+
+> {%
+    client.test("User Login successful", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.global.set("user_token", response.body.access_token);
+        client.global.set("user_id", response.body.user.id);
+    });
+%}
+
+### 7. User Browses Categories
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{user_token}}
+
+> {%
+    client.test("Categories retrieved", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+### 8. User Browses Products in First Category
+GET {{baseUrl}}/api/products/category/{{category1_id}}
+Authorization: Bearer {{user_token}}
+
+> {%
+    client.test("Products from Cat 1 retrieved", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+### 9. User Adds Item from First Category to Cart
+POST {{baseUrl}}/api/carts/me/items
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "productId": "{{product1_id}}",
+  "quantity": 1
+}
+
+> {%
+    client.test("Item 1 added to cart", function() {
+        client.assert(response.status === 200 || response.status === 201, "Expected 200 or 201");
+    });
+%}
+
+### 10. User Browses Categories Again
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{user_token}}
+
+### 11. User Chooses Second Category
+GET {{baseUrl}}/api/products/category/{{category2_id}}
+Authorization: Bearer {{user_token}}
+
+### 12. User Adds Item from Second Category to Cart
+POST {{baseUrl}}/api/carts/me/items
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "productId": "{{product2_id}}",
+  "quantity": 2
+}
+
+### 13. User Views Their Cart (and captures IDs)
+GET {{baseUrl}}/api/carts/me
+Authorization: Bearer {{user_token}}
+
+> {%
+    client.test("Cart retrieved", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.global.set("cart_id", response.body.id);
+        // Grab the ID of the first item in the cart so we can remove it
+        if (response.body.items && response.body.items.length > 0) {
+            client.global.set("cart_item_to_remove", response.body.items[0].id);
+        }
+    });
+%}
+
+### 14. User Removes the First Item from Cart
+DELETE {{baseUrl}}/api/carts/{{cart_id}}/items/{{cart_item_to_remove}}
+Authorization: Bearer {{user_token}}
+
+> {%
+    client.test("Item removed", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+### 15. User Checks Out Cart
+POST {{baseUrl}}/api/carts/me/checkout
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "customerName": "Test Customer",
+  "customerEmail": "customer@test.com",
+  "deliveryType": "PICKUP",
+  "paymentMethod": "CASH"
+}
+
+> {%
+    client.test("Checkout successful", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+        // The checkout route returns { cart: {...}, order: {...} }
+        client.global.set("order_id", response.body.order.id);
+        client.global.set("order_total", response.body.order.totalAmount);
+    });
+%}
+
+### 16. Process Payment for the Order
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "orderId": "{{order_id}}",
+  "userId": "{{user_id}}",
+  "paymentMethod": "CASH",
+  "amount": {{order_total}}
+}
+
+> {%
+    client.test("Payment processed", function() {
+        client.assert(response.status === 201, "Expected 201 Created");
+    });
+%}

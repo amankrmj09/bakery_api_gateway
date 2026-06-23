@@ -1,0 +1,157 @@
+### API Gateway E2E Tests
+@baseUrl = http://localhost:8080
+@adminEmail = admin@bakery.com
+@adminPassword = Admin@123
+
+### 1. Admin Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+  client.test("Admin Login successful", function() {
+    client.assert(response.status === 200, "Expected 200 OK");
+    client.assert(response.body.access_token !== undefined, "Expected a token");
+    client.global.set("admin_token", response.body.access_token);
+  });
+%}
+
+### 2. User Registration
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "customer_test",
+  "email": "customer@test.com",
+  "password": "Password123!",
+  "firstName": "Test",
+  "lastName": "Customer"
+}
+
+> {%
+  client.test("User registration successful or already exists", function() {
+    client.assert(response.status === 201 || response.status === 400, "Expected 201 Created or 400 Exists");
+  });
+%}
+
+### 3. User Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "customer@test.com",
+  "password": "Password123!"
+}
+
+> {%
+  client.test("User Login successful", function() {
+    client.assert(response.status === 200, "Expected 200 OK");
+    client.global.set("user_token", response.body.access_token);
+    client.global.set("user_id", response.body.user.id);
+  });
+%}
+
+### 4. Create Category (Admin)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "name": "Pastries {{ $random.uuid }}",
+  "description": "Delicious baked pastries",
+  "active": true
+}
+
+> {%
+  client.test("Category created", function() {
+    client.assert(response.status === 201, "Expected 201 Created");
+    client.global.set("category_id", response.body.id);
+  });
+%}
+
+### 5. Create Product (Admin)
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "sku": "PST-{{ $random.uuid }}",
+  "name": "Chocolate Cream",
+  "categoryId": "{{category_id}}",
+  "price": 5.50,
+  "status": "ACTIVE",
+  "unit": "piece",
+  "initialStock": 50
+}
+
+> {%
+  client.test("Product created", function() {
+    client.assert(response.status === 201, "Expected 201 Created");
+    client.global.set("product_id", response.body.id);
+  });
+%}
+
+### 6. Add to Cart (User)
+POST {{baseUrl}}/api/carts/me/items
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "productId": "{{product_id}}",
+  "quantity": 2
+}
+
+> {%
+  client.test("Item added to cart", function() {
+    client.assert(response.status === 200 || response.status === 201, "Expected 200 or 201");
+  });
+%}
+
+### 7. Create Order (User)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "userId": "{{user_id}}",
+  "customerName": "Test Customer",
+  "customerEmail": "customer@test.com",
+  "deliveryType": "PICKUP",
+  "items": [
+    {
+      "productId": "{{product_id}}",
+      "quantity": 2
+    }
+  ],
+  "paymentMethod": "CASH",
+  "paymentAmount": 9.72
+}
+
+> {%
+  client.test("Order created", function() {
+    client.assert(response.status === 201, "Expected 201 Created");
+    client.global.set("order_id", response.body.id);
+  });
+%}
+
+### 8. Process Payment
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "orderId": "{{order_id}}",
+  "userId": "{{user_id}}",
+  "paymentMethod": "CASH",
+  "amount": 9.72
+}
+
+> {%
+  client.test("Payment processed", function() {
+    client.assert(response.status === 201, "Expected 201 Created");
+  });
+%}
