@@ -24,13 +24,21 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
-            // Skip auth for public endpoints if needed (usually handled by route predicates, but just in case)
-            if (request.getURI().getPath().contains("/api/auth/login") ||
-                request.getURI().getPath().contains("/api/auth/register")) {
-                return chain.filter(exchange);
-            }
+            String path = request.getURI().getPath();
+            org.springframework.http.HttpMethod method = request.getMethod();
 
+            boolean isPublicEndpoint = 
+                (method == org.springframework.http.HttpMethod.GET && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/uploads/media"))) ||
+                path.startsWith("/api/carts") || 
+                path.startsWith("/api/cart-items") ||
+                path.contains("/api/auth/login") ||
+                path.contains("/api/auth/register");
+            
+            // If no auth header, check if it's a public endpoint
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                if (isPublicEndpoint) {
+                    return chain.filter(exchange);
+                }
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
