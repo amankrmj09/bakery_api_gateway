@@ -189,7 +189,7 @@ Authorization: Bearer {{admin_token}}
 
 ### 5. User Registration
 < {%
-    client.global.set("username", "buyer");
+    client.global.set("username", "buyer2");
     client.global.set("user_email", "buyer_" + $random.uuid + "@test.com");
     client.global.set("user_password", "Secure456@");
 %}
