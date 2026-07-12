@@ -1,0 +1,18 @@
+jwt:
+  secret: bWVnYVN1cGVyU2VjcmV0S2V5Rm9yQmFrZXJ5QXV0aFNlcnZpY2UyMDI1
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: gateway-health
+          uri: http://localhost:8080
+          predicates:
+            - Path=/gateway/health
+          filters:
+            - RewritePath=/gateway/health,/actuator/health
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

@@ -1,0 +1,18 @@
+jwt:
+  secret: ${JWT_SECRET}
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: gateway-health
+          uri: ${API_GATEWAY_URL}
+          predicates:
+            - Path=/gateway/health
+          filters:
+            - RewritePath=/gateway/health,/actuator/health
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
