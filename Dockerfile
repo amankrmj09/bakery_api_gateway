@@ -1,16 +1,37 @@
-FROM openjdk:21-jdk-slim
-
+# Stage 1: Build
+FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /app
 
-# Copy the jar file
-COPY build/libs/bakery_api_gateway-0.0.1-SNAPSHOT.jar api-gateway.jar
+# Cache gradle wrapper and dependencies
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
-# Expose port
+# Copy source code and build
+COPY src src
+RUN ./gradlew clean bootJar -x test --no-daemon
+
+# Extract layers
+RUN java -Djarmode=layertools -jar build/libs/*.jar extract
+
+# Stage 2: Runtime
+FROM eclipse-temurin:25-jre
+WORKDIR /app
+
+# Create a non-root user
+RUN addgroup --system spring-user && adduser --system --ingroup spring-user spring-user
+USER spring-user:spring-user
+
+# Copy extracted layers from builder stage
+COPY --from=builder /app/dependencies/ ./
+COPY --from=builder /app/spring-boot-loader/ ./
+COPY --from=builder /app/snapshot-dependencies/ ./
+COPY --from=builder /app/application/ ./
+
+# Expose port (adjust if needed)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
-
 # Run the application
-ENTRYPOINT ["java", "-jar", "api-gateway.jar"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
