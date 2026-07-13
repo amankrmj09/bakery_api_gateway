@@ -6,7 +6,7 @@ plugins {
 
 group = "com.dev_of_blue"
 version = "1.0.0"
-description = "bakery_api_gateway service to manage all the incoming requests and route them to the appropriate microservices."
+description = "API Gateway for routing requests to Bakery microservices"
 
 java {
     toolchain {
