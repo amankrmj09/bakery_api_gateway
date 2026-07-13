@@ -1,2 +1,7 @@
 jwt:
   secret: bWVnYVN1cGVyU2VjcmV0S2V5Rm9yQmFrZXJ5QXV0aFNlcnZpY2UyMDI1
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
