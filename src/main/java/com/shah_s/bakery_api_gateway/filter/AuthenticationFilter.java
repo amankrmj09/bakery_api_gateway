@@ -31,8 +31,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 (method == org.springframework.http.HttpMethod.GET && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/uploads/media"))) ||
                 path.startsWith("/api/carts") || 
                 path.startsWith("/api/cart-items") ||
-                path.contains("/api/auth/login") ||
-                path.contains("/api/auth/register");
+                path.startsWith("/api/auth/login") ||
+                path.startsWith("/api/auth/register") ||
+                path.startsWith("/api/auth/refresh") ||
+                path.startsWith("/api/auth/validate") ||
+                path.startsWith("/api/auth/health");
             
             // If no auth header, check if it's a public endpoint
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
