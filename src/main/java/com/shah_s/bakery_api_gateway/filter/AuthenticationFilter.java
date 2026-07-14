@@ -28,7 +28,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             org.springframework.http.HttpMethod method = request.getMethod();
 
             boolean isPublicEndpoint = 
-                (method == org.springframework.http.HttpMethod.GET && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/uploads/media"))) ||
+                (method == org.springframework.http.HttpMethod.GET && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/uploads/media") || path.startsWith("/api/store/settings"))) ||
                 path.startsWith("/api/carts") || 
                 path.startsWith("/api/cart-items") ||
                 path.startsWith("/api/auth/login") ||
