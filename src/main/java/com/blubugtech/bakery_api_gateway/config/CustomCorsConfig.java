@@ -1,4 +1,4 @@
-package com.shah_s.bakery_api_gateway.config;
+package com.blubugtech.bakery_api_gateway.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.config.CorsRegistry;

@@ -1,4 +1,4 @@
-package com.shah_s.bakery_api_gateway.util;
+package com.blubugtech.bakery_api_gateway.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

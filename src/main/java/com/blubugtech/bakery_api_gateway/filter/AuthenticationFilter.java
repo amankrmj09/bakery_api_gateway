@@ -1,6 +1,6 @@
-package com.shah_s.bakery_api_gateway.filter;
+package com.blubugtech.bakery_api_gateway.filter;
 
-import com.shah_s.bakery_api_gateway.util.JwtUtil;
+import com.blubugtech.bakery_api_gateway.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;

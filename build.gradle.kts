@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.dev_of_blue"
+group = "org.blubugtech.com"
 version = "1.0.0"
 description = "API Gateway for routing requests to Bakery microservices"
 
