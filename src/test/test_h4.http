@@ -1,5 +1,285 @@
-### GET request to example server
-GET https://examples.http-client.intellij.net/get
-    ?generated-in=IntelliJ IDEA
+@baseUrl = http://bakery-api.blubug.me
 
-###
+### ==============================================================
+### STAGE 1: ACCOUNT PROVISIONING & IDENTITY SESSION ACCESS
+### ==============================================================
+
+### 1. Register a Fresh User Account (Type: Public)
+# @name registerUser
+
+< {%
+    // Generate ONE random suffix and reuse it for username + email
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    client.global.set("randSuffix", suffix);
+    client.global.set("username", `user_test_101_${suffix}`);
+    client.global.set("userEmail", `user_101_${suffix}@blubug.me`);
+    client.global.set("userPassword", "SecurePass@101");
+
+    console.log(`Generated user credentials: username=${client.global.get("username")}, email=${client.global.get("userEmail")}`);
+%}
+
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}",
+  "firstName": "Test",
+  "lastName": "User101"
+}
+
+> {%
+    client.test("Registration endpoint returns Created state", function () {
+        client.assert(response.status === 201 || response.status === 200, "Expected status 201/200");
+    });
+%}
+
+### 2. Authenticate User to Acquire Session Token (Type: Public)
+# @name loginUser
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+> {%
+    client.test("Authentication yields Bearer Token payload", function () {
+        client.assert(response.status === 200, "Login must be 200 OK");
+        client.assert(response.body.hasOwnProperty("access_token"), "Missing access token");
+    });
+    // Set variables to global context for session lifespan tracking
+    client.global.set("user_token", response.body.access_token);
+    client.global.set("user_id", response.body.user.id);
+%}
+
+### 3. Initialize Active Cart Instance (Type: User)
+# @name initializeCart
+POST {{baseUrl}}/api/carts
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "userId": "{{user_id}}",
+  "sessionId": "session-101-{{$uuid}}",
+  "currencyCode": "USD",
+  "deliveryType": "PICKUP"
+}
+
+> {%
+    client.test("Cart initialized as ACTIVE empty wrapper", function () {
+        client.assert(response.status === 200, "Cart initialization failed");
+        client.assert(response.body.status === "ACTIVE", "Cart state must be active");
+    });
+    client.global.set("active_cart_id", response.body.id);
+%}
+
+
+### ==============================================================
+### STAGE 2: FIRST SHOPPING SPREE (Browse Catalog -> Add Item)
+### ==============================================================
+
+### 4. Browse Available Bakery Categories - Phase 1 (Type: Public)
+# @name browseCategoriesPhase1
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+> {%
+    client.test("Categories retrieved cleanly", function () {
+        client.assert(response.status === 200, "Failed to load categories catalog");
+        client.assert(Array.isArray(response.body.content), "Expected catalog array stack");
+    });
+    // Extract first catalog category item ID dynamically
+    client.global.set("selected_category_1", response.body.content[0].id);
+%}
+
+### 5. Fetch Products inside the Selected Category & Inject Item to Cart (Type: User)
+# @name addProductFromCategory1
+POST {{baseUrl}}/api/carts/{{active_cart_id}}/items
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "productId": "4a2a1100-c081-4bb2-b43a-71bcba9891ab",
+  "quantity": 1,
+  "specialInstructions": "First item choices"
+}
+
+> {%
+    client.test("First category item successfully ingested into cart", function () {
+        client.assert(response.status === 200, "Add to cart request failed");
+        client.assert(response.body.totalQuantity === 1, "Expected running total quantity of 1");
+    });
+%}
+
+
+### ==============================================================
+### STAGE 3: SECOND SHOPPING SPREE (Browse Catalog -> Add 2 Units)
+### ==============================================================
+
+### 6. Browse Available Bakery Categories Again - Phase 2 (Type: Public)
+# @name browseCategoriesPhase2
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+> {%
+    client.test("Categories catalog re-browsed successfully", function () {
+        client.assert(response.status === 200, "Failed to load browse map");
+    });
+    // Pick the second available category index slot dynamically
+    client.global.set("selected_category_2", response.body.content[1].id);
+%}
+
+### 7. Inject 2 Units of Product Variant from Second Category Selection (Type: User)
+# @name addProductFromCategory2
+POST {{baseUrl}}/api/carts/{{active_cart_id}}/items
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "productId": "b2c62788-de88-444a-a921-2e64b8a2110c",
+  "quantity": 2,
+  "specialInstructions": "Double units batch"
+}
+
+> {%
+    client.test("Second category addition increments total count structure", function () {
+        client.assert(response.status === 200, "Failed addition injection payload");
+        client.assert(response.body.totalQuantity === 3, "Running total quantity should aggregate to 3");
+    });
+%}
+
+
+### ==============================================================
+### STAGE 4: THIRD SHOPPING SPREE (Browse Catalog -> Add 1 Unit)
+### ==============================================================
+
+### 8. Browse Available Bakery Categories Again - Phase 3 (Type: Public)
+# @name browseCategoriesPhase3
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+> {%
+    client.test("Third category browsing check complete", function () {
+        client.assert(response.status === 200, "Fails to scan index registry");
+    });
+    // Pick third index category slot
+    client.global.set("selected_category_3", response.body[2].id);
+%}
+
+### 9. Inject Single Product from Third Category Selection (Type: User)
+# @name addProductFromCategory3
+POST {{baseUrl}}/api/carts/{{active_cart_id}}/items
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "productId": "fc1d39d9-bb88-410a-9d92-ea63cc1ba228",
+  "quantity": 1
+}
+
+> {%
+    client.test("Final product selection added successfully", function () {
+        client.assert(response.status === 200, "Failed to ingest item");
+        client.assert(response.body.totalQuantity === 4, "Total aggregated metrics count must be 4");
+    });
+%}
+
+
+### ==============================================================
+### STAGE 5: BASKET INTEGRITY METRIC TESTING & LINE-ITEM PURGING
+### ==============================================================
+
+### 10. Fetch Current Cart State Matrix to Verify Quantity 4 (Type: User)
+# @name verifyInitialCartTotal
+GET {{baseUrl}}/api/carts/{{active_cart_id}}
+Authorization: Bearer {{user_token}}
+Accept: application/json
+
+> {%
+    client.test("Basket item structure validates explicit count of 4", function () {
+        client.assert(response.status === 200, "Unable to pull cart state view");
+        client.assert(response.body.totalQuantity === 4, "Validation failed: quantity mismatch");
+
+        // Dynamically save the specific itemId of the second product addition entry to drop it next
+        let targetedItem = response.body.items.find(item => item.productId === "b2c62788-de88-444a-a921-2e64b8a2110c");
+        client.global.set("target_purge_item_id", targetedItem.id);
+        client.global.set("target_purge_quantity", targetedItem.quantity); // Value is 2
+    });
+%}
+
+### 11. Purge the Targeted Item containing 2 Quantities from the Cart (Type: User)
+# @name purgeCartLineItem
+DELETE {{baseUrl}}/api/carts/{{active_cart_id}}/items/{{target_purge_item_id}}
+Authorization: Bearer {{user_token}}
+
+> {%
+    client.test("Line item purged cleanly from active basket state mapping", function () {
+        client.assert(response.status === 200, "Item removal process rejected");
+    });
+%}
+
+### 12. Re-verify Cart State Matrix to Confirm Updated Quantity 2 (Type: User)
+# @name verifyPostPurgeCartTotal
+GET {{baseUrl}}/api/carts/{{active_cart_id}}
+Authorization: Bearer {{user_token}}
+Accept: application/json
+
+> {%
+    client.test("Subtotal quantity metrics mathematically equal 2 (4 minus 2)", function () {
+        client.assert(response.status === 200, "Failed state validation pull request");
+        client.assert(response.body.totalQuantity === 2, "Final total count validation check failed: should equal 2");
+    });
+%}
+
+
+### ==============================================================
+### STAGE 6: TRANSACTION CHECKOUT & FINANCIAL SETTIEMENT
+### ==============================================================
+
+### 13. Convert Basket to Formal Order Configuration Block (Type: User)
+# @name convertCartToOrder
+POST {{baseUrl}}/api/carts/{{active_cart_id}}/checkout
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "customerName": "Test User 101",
+  "customerEmail": "{{userEmail}}",
+  "deliveryType": "PICKUP",
+  "paymentMethod": "CREDIT_CARD",
+  "metadata": {
+    "workflow": "user_test_101_e2e_sequence"
+  }
+}
+
+> {%
+    client.test("Order ledger generated successfully from active session cart", function () {
+        client.assert(response.status === 200 || response.status === 201, "Checkout conversion blocked");
+        client.assert(response.body.hasOwnProperty("orderId"), "Missing order sequence tracing ID");
+    });
+    client.global.set("checkout_order_id", response.body.orderId);
+%}
+
+### 14. Execute Settlement Against Generated Order (Type: User)
+# @name processOrderPayment
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "orderId": "{{checkout_order_id}}",
+  "amount": 19.50,
+  "currency": "USD",
+  "paymentMethod": "CREDIT_CARD",
+  "gatewayProvider": "STRIPE"
+}
+
+> {%
+    client.test("Payment pipeline executed successfully; ledger workflow complete", function () {
+        client.assert(response.status === 200 || response.status === 201, "Settlement step assertion rejected");
+        client.assert(response.body.status === "COMPLETED", "Payment did not resolve to COMPLETED state");
+    });
+%}

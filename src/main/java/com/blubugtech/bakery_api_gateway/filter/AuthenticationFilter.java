@@ -1,89 +1,72 @@
 package com.blubugtech.bakery_api_gateway.filter;
 
-import com.blubugtech.bakery_api_gateway.util.JwtUtil;
-import io.jsonwebtoken.Claims;
+import com.blubugtech.bakery_api_gateway.model.AuthenticatedUser;
+import com.blubugtech.bakery_api_gateway.service.HeaderService;
+import com.blubugtech.bakery_api_gateway.service.JwtService;
+import com.blubugtech.bakery_api_gateway.service.PublicEndpointService;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
+    private final PublicEndpointService publicEndpointService;
+    private final HeaderService headerService;
 
-    public AuthenticationFilter(JwtUtil jwtUtil) {
+    public AuthenticationFilter(
+            JwtService jwtService,
+            PublicEndpointService publicEndpointService,
+            HeaderService headerService
+    ) {
         super(Config.class);
-        this.jwtUtil = jwtUtil;
+        this.jwtService = jwtService;
+        this.publicEndpointService = publicEndpointService;
+        this.headerService = headerService;
     }
 
     @Override
     public GatewayFilter apply(Config config) {
+
         return (exchange, chain) -> {
+
             ServerHttpRequest request = exchange.getRequest();
 
-            String path = request.getURI().getPath();
-            org.springframework.http.HttpMethod method = request.getMethod();
-
-            boolean isPublicEndpoint = 
-                (method == org.springframework.http.HttpMethod.GET && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/uploads/media") || path.startsWith("/api/store/settings"))) ||
-                path.startsWith("/api/carts") || 
-                path.startsWith("/api/cart-items") ||
-                path.startsWith("/api/auth/login") ||
-                path.startsWith("/api/auth/register") ||
-                path.startsWith("/api/auth/refresh") ||
-                path.startsWith("/api/auth/validate") ||
-                path.startsWith("/api/auth/health");
-            
-            // If no auth header, check if it's a public endpoint
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                if (isPublicEndpoint) {
-                    return chain.filter(exchange);
-                }
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+            if (publicEndpointService.isPublic(request)) {
+                return chain.filter(exchange);
             }
 
-            String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
-
-            String token = authHeader.substring(7);
-            if (!jwtUtil.validateToken(token)) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
-
-            Claims claims = jwtUtil.getClaims(token);
-            
-            // The subject is the username, but downstream services expect X-User-Id to be a UUID.
-            // The Auth service sets the actual UUID in the "userId" claim.
-            String userId = claims.get("userId", String.class);
-            if (userId == null) {
-                // Fallback to subject if userId claim is missing
-                userId = claims.getSubject();
-            }
-            String role = claims.get("role", String.class);
-
-            // Remove any incoming spoofed headers, then add the trusted ones
-            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .headers(httpHeaders -> {
-                        httpHeaders.remove("X-User-Id");
-                        httpHeaders.remove("X-User-Role");
-                    })
-                    .header("X-User-Id", userId)
-                    .header("X-User-Role", role)
-                    .build();
-
-            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+            return jwtService.extractToken(request)
+                    .filter(jwtService::isValid)
+                    .map(jwtService::getAuthenticatedUser)
+                    .map(user -> authenticate(exchange, chain, user))
+                    .orElseGet(() -> unauthorized(exchange));
         };
     }
 
+    private Mono<Void> authenticate(
+            ServerWebExchange exchange,
+            org.springframework.cloud.gateway.filter.GatewayFilterChain chain,
+            AuthenticatedUser user
+    ) {
+
+        ServerHttpRequest request =
+                headerService.addAuthenticatedHeaders(exchange.getRequest(), user);
+
+        return chain.filter(exchange.mutate().request(request).build());
+    }
+
+    private Mono<Void> unauthorized(ServerWebExchange exchange) {
+
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
+    }
+
     public static class Config {
-        // Configuration properties can be added here if needed
     }
 }

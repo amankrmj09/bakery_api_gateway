@@ -17,13 +17,16 @@ import java.util.Map;
 @RequestMapping("/api")
 public class PingController {
 
-    @Autowired
-    private DiscoveryClient discoveryClient;
+    private final DiscoveryClient discoveryClient;
+
+    PingController(DiscoveryClient discoveryClient) {
+        this.discoveryClient = discoveryClient;
+    }
 
     @GetMapping("/ping")
     public Mono<ResponseEntity<Map<String, String>>> ping() {
         List<String> registeredServices = discoveryClient.getServices();
-        
+
         List<String> requiredServices = Arrays.asList(
             "bakery-auth-service",
             "bakery-product-service",
