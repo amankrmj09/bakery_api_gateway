@@ -38,7 +38,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             ServerHttpRequest request = exchange.getRequest();
 
             if (publicEndpointService.isPublic(request)) {
-                return chain.filter(exchange);
+                return jwtService.extractToken(request)
+                        .filter(jwtService::isValid)
+                        .map(jwtService::getAuthenticatedUser)
+                        .map(user -> authenticate(exchange, chain, user))
+                        .orElseGet(() -> chain.filter(exchange));
             }
 
             return jwtService.extractToken(request)
