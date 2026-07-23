@@ -46,7 +46,8 @@ public class JwtService {
         }
 
         String role = claims.get("role", String.class);
+        String email = claims.get("email", String.class);
 
-        return new AuthenticatedUser(userId, role);
+        return new AuthenticatedUser(userId, role, email);
     }
 }
