@@ -25,6 +25,7 @@ public class PublicEndpointService {
         return path.startsWith("/api/carts")
                 || path.startsWith("/api/cart-items")
                 || path.startsWith("/api/auth/login")
+                || path.startsWith("/api/auth/admin/login")
                 || path.startsWith("/api/auth/register")
                 || path.startsWith("/api/auth/refresh")
                 || path.startsWith("/api/auth/validate")
