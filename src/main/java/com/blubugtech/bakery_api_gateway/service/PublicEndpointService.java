@@ -28,6 +28,7 @@ public class PublicEndpointService {
                 || path.startsWith("/api/auth/login")
                 || path.startsWith("/api/auth/admin/login")
                 || path.startsWith("/api/auth/register")
+                || path.startsWith("/api/auth/forgot-password")
                 || path.startsWith("/api/auth/refresh")
                 || path.startsWith("/api/auth/validate")
                 || path.startsWith("/api/auth/health");
