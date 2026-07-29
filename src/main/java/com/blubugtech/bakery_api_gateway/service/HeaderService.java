@@ -3,13 +3,10 @@ package com.blubugtech.bakery_api_gateway.service;
 import com.blubugtech.bakery_api_gateway.model.AuthenticatedUser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Service;
+import com.blubugtech.bakery_api_gateway.constant.GatewayConstants;
 
 @Service
 public class HeaderService {
-
-    private static final String USER_ID = "X-User-Id";
-    private static final String USER_ROLE = "X-User-Role";
-    private static final String USER_EMAIL = "X-User-Email";
 
     public ServerHttpRequest addAuthenticatedHeaders(
             ServerHttpRequest request,
@@ -18,13 +15,13 @@ public class HeaderService {
 
         return request.mutate()
                 .headers(headers -> {
-                    headers.remove(USER_ID);
-                    headers.remove(USER_ROLE);
-                    headers.remove(USER_EMAIL);
+                    headers.remove(GatewayConstants.USER_ID_HEADER);
+                    headers.remove(GatewayConstants.USER_ROLE_HEADER);
+                    headers.remove(GatewayConstants.USER_EMAIL_HEADER);
                 })
-                .header(USER_ID, user.userId())
-                .header(USER_ROLE, user.role())
-                .header(USER_EMAIL, user.email() != null ? user.email() : "")
+                .header(GatewayConstants.USER_ID_HEADER, user.userId())
+                .header(GatewayConstants.USER_ROLE_HEADER, user.role())
+                .header(GatewayConstants.USER_EMAIL_HEADER, user.email() != null ? user.email() : "")
                 .build();
     }
 }

@@ -6,13 +6,13 @@ import io.jsonwebtoken.Claims;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Service;
+import com.blubugtech.bakery_api_gateway.constant.GatewayConstants;
 
 import java.util.Optional;
 
 @Service
 public class JwtService {
 
-    private static final String BEARER = "Bearer ";
 
     private final JwtUtil jwtUtil;
 
@@ -24,11 +24,11 @@ public class JwtService {
 
         String header = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-        if (header == null || !header.startsWith(BEARER)) {
+        if (header == null || !header.startsWith(GatewayConstants.BEARER_PREFIX)) {
             return Optional.empty();
         }
 
-        return Optional.of(header.substring(BEARER.length()));
+        return Optional.of(header.substring(GatewayConstants.BEARER_PREFIX.length()));
     }
 
     public boolean isValid(String token) {
@@ -39,14 +39,14 @@ public class JwtService {
 
         Claims claims = jwtUtil.getClaims(token);
 
-        String userId = claims.get("userId", String.class);
+        String userId = claims.get(GatewayConstants.JWT_CLAIM_USER_ID, String.class);
 
         if (userId == null) {
             userId = claims.getSubject();
         }
 
-        String role = claims.get("role", String.class);
-        String email = claims.get("email", String.class);
+        String role = claims.get(GatewayConstants.JWT_CLAIM_ROLE, String.class);
+        String email = claims.get(GatewayConstants.JWT_CLAIM_EMAIL, String.class);
 
         return new AuthenticatedUser(userId, role, email);
     }
