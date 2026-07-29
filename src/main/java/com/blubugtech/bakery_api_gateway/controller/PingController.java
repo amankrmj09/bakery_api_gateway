@@ -1,6 +1,5 @@
 package com.blubugtech.bakery_api_gateway.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,12 +27,13 @@ public class PingController {
         List<String> registeredServices = discoveryClient.getServices();
 
         List<String> requiredServices = Arrays.asList(
-            "bakery-auth-service",
-            "bakery-product-service",
-            "bakery-cart-service",
-            "bakery-order-service",
-            "bakery-payment-service",
-            "bakery-notification-service"
+                "bakery-auth-service",
+                "bakery-product-service",
+                "bakery-cart-service",
+                "bakery-order-service",
+                "bakery-payment-service",
+                "bakery-notification-service",
+                "bakery-engagement-service"
         );
 
         for (String service : requiredServices) {

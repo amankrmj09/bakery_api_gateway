@@ -4,4 +4,5 @@ public record AuthenticatedUser(
         String userId,
         String role,
         String email
-) {}
+) {
+}
