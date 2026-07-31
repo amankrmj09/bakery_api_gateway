@@ -1,5 +1,7 @@
 package com.blubugtech.bakery_api_gateway.filter;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.blubugtech.bakery_api_gateway.model.AuthenticatedUser;
 import com.blubugtech.bakery_api_gateway.service.HeaderService;
 import com.blubugtech.bakery_api_gateway.service.JwtService;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
@@ -66,7 +69,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
-
+        log.warn("Unauthorized access attempt to URI: {}", exchange.getRequest().getURI());
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }

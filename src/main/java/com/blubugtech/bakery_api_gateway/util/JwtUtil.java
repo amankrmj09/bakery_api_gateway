@@ -1,5 +1,7 @@
 package com.blubugtech.bakery_api_gateway.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -31,6 +34,7 @@ public class JwtUtil {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
             return true;
         } catch (Exception e) {
+            log.warn("JWT validation failed: {}", e.getMessage());
             return false;
         }
     }
