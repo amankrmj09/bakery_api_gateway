@@ -17,7 +17,7 @@ public class PublicEndpointService {
                     || path.startsWith("/api/categories")
                     || path.startsWith("/api/uploads/media")
                     || path.startsWith("/api/store/settings") || path.startsWith("/api/storefront/frontpage") || path.startsWith("/api/carts") || path.startsWith("/api/cart-items")
-                    || path.startsWith("/api/v1/engagement")
+                    || path.startsWith("/api/engagement")
                     || path.startsWith("/swagger-ui")
                     || path.startsWith("/v3/api-docs")
                     || path.startsWith("/webjars");
